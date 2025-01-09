@@ -6,15 +6,19 @@
 function Gameboard() {
     const rows = 3;
     const columns = 3;
-    const board = [];
+    let board = [];
     let winner = "";
+    const message = document.querySelector(".message");
 
     for (let i = 0; i < rows; i++) {
         board[i] = [];
         for (let j = 0; j < columns; j++) {
-            board[i].push(Cell());
+            board[i].push(Cell(
+                document.querySelector(`#_${i}${j}`)
+            ));
         }
     }
+    console.log(board);
 
     const winCoordinates = [
         [[0,0],[1,0],[2,0]],
@@ -70,6 +74,8 @@ function Gameboard() {
         return "";
     }
 
+    
+
     const everyCheck = (values,player) => {
         return values.every((el) => el === player)
     }
@@ -86,7 +92,13 @@ function Gameboard() {
         console.log(boardWithCellValues);
     }
 
-    return { playerTurn, printBoard, winFunc, winner}
+    const clearBoard = () => {
+        board.forEach((row) => row.forEach(((cell) => cell.clearCell())));
+        const boardWithCellValues = board.map((row) => row.map((cell) => cell.getValue()));
+        console.log(boardWithCellValues);
+    }
+
+    return { playerTurn, printBoard, winFunc, winner, message, clearBoard, board}
 }
 
 // Cell()
@@ -94,17 +106,34 @@ function Gameboard() {
 // define put a mark()
 // define getValue()
 
-function Cell() {
+/**
+ * 
+ * @param {HTMLElement} el 
+ * @returns 
+ */
+function Cell(el) {
     let value = "";
-
+    let element = el;
+    element.addEventListener("click", () => {
+        if (value !== "") {
+            return;
+        };
+        game.playRound(element.getAttribute("row"),element.getAttribute("column"))
+    })
     const putMark = (player) => {
         value = player;
+        element.textContent = game.getActivePlayer().mark;
+    };
+
+    const clearCell = () => {
+        value = "";
+        element.textContent = "";
     };
 
     const getValue = () => value;
 
     return {
-        putMark, getValue
+        putMark, getValue, element, clearCell
     };
 }
 
@@ -138,38 +167,68 @@ function GameController(
 
     const printNewRound = () => {
         board.printBoard();
-        console.log(`${getActivePlayer().name}'s turn`);
     };
 
     const playRound = (row, column) => {
-        if (board.winner !== "") {
-            console.log("The winner is " + board.winner);
+        if ( board.winner === "x" || board.winner === "o" ) {
+            board.message.textContent = `The winner is ${board.winner}`;
             return;
         }
         let turn = board.playerTurn(row, column, getActivePlayer().mark);
         if (turn === "again") {
-            console.log(`${getActivePlayer().name} chose invalid cell, please try again`);
             printNewRound();
         } else {
-            console.log(`${getActivePlayer().name} put ${getActivePlayer().mark} in row ${row} column ${column} `);
             board.winner = board.winFunc();
-            if (board.winner !== "") {
+            if ( board.winner === "x" || board.winner === "o" ) {
                 board.printBoard();
-                console.log("The winner is " + board.winner);
+                board.message.textContent = `The winner is ${board.winner}`;
                 return;
             }
             switchPlayers();
             printNewRound();
         };
+        tieTie();
+        if (board.winner === "x" || board.winner === "o" ) {
+            board.message.textContent = `The winner is ${board.winner}`;
+            return;
+        }
     };
+
+    const endGame = () => {
+        board.clearBoard();
+        game = null;
+        game = GameController();
+        board.message.textContent = "";
+    }
+
+    const tieTie = () => {
+        const boardWithCellValues = board.board.map((row) => row.map((cell) => cell.getValue()));
+        boardRowValue0 = boardWithCellValues[0];
+        boardRowValue1 = boardWithCellValues[1];
+        boardRowValue2 = boardWithCellValues[2];
+        const check  = (el) => el === "";
+        if (boardRowValue0.some(check) === false && boardRowValue1.some(check) === false && boardRowValue2.some(check) === false) {
+            board.winner = "DRUZHBA";
+            board.message.textContent = `The winner is ${board.winner}`;
+        };
+    };
+
+        let button = document.querySelector("BUTTON");
+        button.addEventListener("click", () => {
+            endGame();
+        })
+
 
     printNewRound();
 
     return {
         playRound,
-        getActivePlayer
+        getActivePlayer,
+        board,
+        endGame,
+        tieTie,
     };
     };
 
-    const game = GameController();
+    let game = GameController();
 
